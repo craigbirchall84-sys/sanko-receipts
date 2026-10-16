@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sanko Receipts</title>
+<meta name="description" content="Offline receipt capture for travel expenses">
+<meta name="theme-color" content="#0063CC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Receipts">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{
+  --blue:#0063CC; --blue-dk:#004fa3; --blue-l:#e6f0fb; --ink:#0f1b2d; --mut:#5b6b80;
+  --bg:#f4f7fb; --card:#fff; --line:#dbe3ee; --red:#c62828; --amber:#fff4d6; --amber-b:#e9c46a;
+  --r:14px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(24px + var(--safe-b))}
+button,input,select,textarea{font:inherit;color:inherit}
+header.top{position:sticky;top:0;z-index:5;background:var(--blue);color:#fff;padding:calc(10px + var(--safe-t)) 16px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,40,90,.18)}
+header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.2px;flex:1}
+header.top h1 small{display:block;font-size:12px;font-weight:500;opacity:.85}
+.pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.18);white-space:nowrap}
+.pill.off{background:#ffd54f;color:#3a2a00}
+main{max-width:900px;margin:0 auto;padding:14px}
+.banner{border-radius:var(--r);padding:12px 14px;margin:0 0 12px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.banner.warn{background:var(--amber);border:1px solid var(--amber-b)}
+.banner.info{background:var(--blue-l);border:1px solid #b9d3f2}
+.banner b{display:block}
+.banner .bx{flex:1}
+.banner button{flex:none}
+.capture{display:grid;gap:10px;margin-bottom:14px}
+.btn{appearance:none;border:0;border-radius:var(--r);min-height:48px;padding:12px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;user-select:none}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.5}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.primary:active{background:var(--blue-dk)}
+.btn.sec{background:#fff;color:var(--blue);border:2px solid var(--blue)}
+.btn.ghost{background:transparent;color:var(--blue)}
+.btn.danger{background:#fff;color:var(--red);border:2px solid var(--red)}
+.btn.small{min-height:40px;padding:8px 12px;font-size:14px}
+.btn.huge{min-height:88px;font-size:22px;border-radius:18px;box-shadow:0 6px 18px rgba(0,99,204,.28)}
+.btn svg{width:26px;height:26px;flex:none}
+.btn.huge svg{width:34px;height:34px}
+.search{position:relative;margin:4px 0 12px}
+.search input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 12px 42px;background:#fff;font-size:16px}
+.search svg{position:absolute;left:13px;top:14px;width:20px;height:20px;color:var(--mut)}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 10px}
+.sechead h2{font-size:17px;margin:0}
+.sechead span{font-size:13px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:820px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:pointer;text-align:left;padding:0;display:flex;flex-direction:column}
+.card:active{border-color:var(--blue)}
+.thumb{position:relative;flex:none;width:100%;aspect-ratio:3/4;overflow:hidden;background:#e9eef5}
+@supports not (aspect-ratio:1){.thumb{height:0;padding-top:133%}}
+.thumb img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block}
+.num{position:absolute;left:8px;top:8px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;padding:3px 9px;border-radius:99px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.meta{padding:8px 10px 10px}
+.meta .note{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.6em;word-break:break-word}
+.meta .sub{font-size:12.5px;color:var(--mut);display:flex;justify-content:space-between;gap:6px;margin-top:4px}
+.meta .amt{font-weight:600;color:var(--ink)}
+.empty{text-align:center;color:var(--mut);padding:30px 12px;background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-top:18px}
+.panel h2{font-size:17px;margin:0 0 6px}
+.panel p{margin:6px 0;font-size:14px;color:var(--mut)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>.btn{flex:1 1 160px}
+label.f{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 5px}
+.in{width:100%;min-height:48px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;font-size:16px}
+.in:focus,.search input:focus{outline:2px solid var(--blue);outline-offset:0;border-color:var(--blue)}
+textarea.in{min-height:72px;resize:vertical}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.two>div{min-width:0}
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(10,20,35,.55);display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.sheet .box{background:var(--bg);width:100%;max-width:640px;max-height:100%;overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + var(--safe-b));-webkit-overflow-scrolling:touch}
+@media(min-width:700px){.sheet{align-items:center}.sheet .box{border-radius:18px;max-height:94%}}
+.sheet .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sheet .hd h3{margin:0;font-size:19px}
+.prev{width:100%;max-height:46vh;object-fit:contain;background:#dfe6ef;border-radius:12px;display:block;cursor:zoom-in}
+.badge{display:inline-block;background:var(--blue);color:#fff;font-weight:700;padding:3px 10px;border-radius:99px;font-size:14px;margin-left:6px}
+.actions{display:grid;gap:10px;margin-top:16px}
+.viewer{position:fixed;inset:0;z-index:30;background:#000;display:none;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom}
+.viewer.open{display:block}
+.viewer img{display:block;width:100%;height:auto;min-height:100%;object-fit:contain}
+.viewer .x{position:fixed;right:12px;top:calc(12px + var(--safe-t));z-index:31;background:rgba(255,255,255,.92);color:#000;border:0;border-radius:99px;width:48px;height:48px;font-size:24px;font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%) translateY(150%);background:#16233a;color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;z-index:40;transition:transform .25s;max-width:92vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.busy{position:fixed;inset:0;z-index:50;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;font-weight:600;color:var(--blue);flex-direction:column;gap:12px}
+.busy.open{display:flex}
+.spin{width:40px;height:40px;border:4px solid var(--blue-l);border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.foot{font-size:12px;color:var(--mut);text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Receipts <small id="countLbl">Sanko travel expenses</small></h1>
+  <span id="netPill" class="pill">Online</span>
+</header>
+
+<main>
+  <div id="envNote" class="banner info hidden"></div>
+  <div id="installBanner" class="banner info hidden">
+    <div class="bx"><b>Install on this phone</b><span id="installTxt"></span></div>
+    <button id="installBtn" class="btn small primary hidden">Install</button>
+  </div>
+  <div id="backupBanner" class="banner warn hidden">
+    <div class="bx"><b id="backupTitle">Back up your receipts</b><span id="backupTxt"></span></div>
+    <button id="backupNow" class="btn small primary">Back up</button>
+  </div>
+
+  <section class="capture">
+    <button id="takeBtn" class="btn primary huge" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Take photo
+    </button>
+    <button id="galleryBtn" class="btn sec" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Choose from gallery
+    </button>
+    <input id="camInput" type="file" accept="image/*" capture="environment" class="hidden">
+    <input id="galInput" type="file" accept="image/*" class="hidden">
+  </section>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="q" type="search" placeholder="Search note, number, amount, date…" autocomplete="off" enterkeyhint="search">
+  </div>
+
+  <div class="sechead"><h2>Saved receipts</h2><span id="listInfo"></span></div>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty hidden">No receipts yet.<br>Tap <b>Take photo</b> to capture your first one.</div>
+
+  <section class="panel" id="exportPanel">
+    <h2>Export &amp; back up</h2>
+    <p>Receipts are stored <b>only on this phone</b> (works offline). Back up regularly — e.g. every evening — by downloading or sharing a ZIP (all photos named <code>001_note.jpg</code> + a CSV list).</p>
+    <div class="row" style="margin-top:10px">
+      <button id="zipBtn" class="btn primary" type="button">Download ZIP + CSV</button>
+      <button id="shareBtn" class="btn sec" type="button">Share…</button>
+    </div>
+    <button id="shareReady" class="btn primary hidden" type="button" style="width:100%;margin-top:10px">Ready — tap to share</button>
+    <p id="lastBackup"></p>
+    <p id="iosHint" class="hidden">iPhone tip: use <b>Share…</b> then <b>Save to Files</b> (or send to your email/OneDrive app).</p>
+  </section>
+
+  <section class="panel">
+    <h2>Settings</h2>
+    <label class="f" for="defCur">Default currency</label>
+    <select id="defCur" class="in"></select>
+    <label class="f" for="nextNum">Next receipt number (can only go up — numbers are never reused)</label>
+    <div class="row"><input id="nextNum" class="in" type="number" inputmode="numeric" min="1" style="flex:1 1 120px"><button id="setNext" class="btn sec small" type="button" style="flex:0 0 auto">Set</button></div>
+    <p id="storageInfo"></p>
+  </section>
+  <p class="foot">Sanko Receipts · offline-first · <span id="verLbl"></span></p>
+</main>
+
+<!-- Edit / new sheet -->
+<div id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="box">
+    <div class="hd"><h3 id="sheetTitle">New receipt</h3><button id="sheetClose" class="btn ghost small" type="button" aria-label="Close">Cancel</button></div>
+    <img id="sheetImg" class="prev" alt="Receipt photo (tap to enlarge)">
+    <form id="form" autocomplete="off">
+      <label class="f" for="fNote">What was it for?</label>
+      <textarea id="fNote" class="in" placeholder="e.g. Taxi airport → hotel, dinner with client…" enterkeyhint="done"></textarea>
+      <div class="two">
+        <div><label class="f" for="fAmt">Amount (optional)</label><input id="fAmt" class="in" type="text" inputmode="decimal" placeholder="0.00"></div>
+        <div><label class="f" for="fCur">Currency</label><select id="fCur" class="in"></select></div>
+      </div>
+      <label class="f" for="fDate">Date</label>
+      <input id="fDate" class="in" type="date">
+      <div class="actions">
+        <button id="saveBtn" class="btn primary" type="submit">Save receipt</button>
+        <button id="shareOne" class="btn sec hidden" type="button">Share this receipt</button>
+        <button id="delBtn" class="btn danger hidden" type="button">Delete receipt</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="viewer" class="viewer"><button class="x" id="viewerClose" type="button" aria-label="Close">×</button><img id="viewerImg" alt="Receipt full size"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="busy" class="busy"><div class="spin"></div><div id="busyTxt">Working…</div></div>
+
+<script>
+(function(){
+'use strict';
+var APP_VERSION = '1.0.0';
+var MAX_SIDE = 1600, JPEG_Q = 0.82, THUMB_SIDE = 360, THUMB_Q = 0.7;
+var CURRENCIES = ['GBP','EUR','USD','JPY','CNY','HKD','SGD','KRW','TWD','THB','MYR','IDR','PHP','VND','INR','AED','SAR','QAR','TRY','CHF','SEK','NOK','DKK','PLN','CZK','HUF','RON','AUD','NZD','CAD','MXN','BRL','ZAR','ILS','EGP','OTHER'];
+
+var $ = function(id){ return document.getElementById(id); };
+var db = null, receipts = [], editing = null, pending = null, thumbUrls = [], sheetUrl = null, viewerUrl = null, shareFiles = null;
+
+/* ---------- helpers ---------- */
+function pad(n){ n = String(n); while (n.length < 3) n = '0' + n; return n; }
+function todayISO(){ var d = new Date(); return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
+function fmtDate(iso){ if (!iso) return ''; var p = iso.split('-'); if (p.length !== 3) return iso; var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1]; return (+p[2]) + ' ' + m + ' ' + p[0]; }
+function slug(s){
+  s = (s || '').normalize ? (s || '').normalize('NFKD') : (s || '');
+  s = s.replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (s.length > 40) s = s.slice(0, 40).replace(/-+[^-]*$/, '') || s.slice(0, 40);
+  return s.replace(/-+$/,'') || 'receipt';
+}
+function normAmount(s){
+  s = String(s || '').trim().replace(/\s/g, '');
+  if (!s) return '';
+  if (/^\d{1,3}(\.\d{3})+,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56
+  else if (/^\d+,\d{1,2}$/.test(s)) s = s.replace(',', '.');                         // 12,50
+  else s = s.replace(/,/g, '');                                                      // 1,234.56
+  return s.replace(/[^0-9.\-]/g, '');
+}
+function fileName(r){ return pad(r.num) + '_' + slug(r.note) + (r.imgType === 'image/png' ? '.png' : '.jpg'); }
+function toast(msg, ms){ var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, ms || 2600); }
+function busy(on, txt){ $('busy').classList.toggle('open', !!on); if (txt) $('busyTxt').textContent = txt; }
+function blobToBuf(b){
+  if (b.arrayBuffer) return b.arrayBuffer();
+  return new Promise(function(res, rej){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ rej(fr.error); }; fr.readAsArrayBuffer(b); });
+}
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function isStandalone(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+
+/* ---------- IndexedDB ---------- */
+function openDB(){
+  return new Promise(function(res, rej){
+    if (!window.indexedDB) return rej(new Error('IndexedDB not available'));
+    var rq = indexedDB.open('sanko-receipts', 1);
+    rq.onupgradeneeded = function(){
+      var d = rq.result;
+      if (!d.objectStoreNames.contains('receipts')) d.createObjectStore('receipts', { keyPath: 'num' });
+      if (!d.objectStoreNames.contains('images')) d.createObjectStore('images', { keyPath: 'num' });
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'k' });
+    };
+    rq.onsuccess = function(){ res(rq.result); };
+    rq.onerror = function(){ rej(rq.error); };
+    rq.onblocked = function(){ toast('Close other tabs of this app to finish updating'); };
+  });
+}
+function p(rq){ return new Promise(function(res, rej){ rq.onsuccess = function(){ res(rq.result); }; rq.onerror = function(){ rej(rq.error); }; }); }
+function txDone(t){ return new Promise(function(res, rej){ t.oncomplete = function(){ res(); }; t.onerror = t.onabort = function(){ rej(t.error || new Error('Transaction failed')); }; }); }
+function getMeta(k, def){ return p(db.transaction('meta').objectStore('meta').get(k)).then(function(r){ return r ? r.v : def; }); }
+function setMeta(k, v){ var t = db.transaction('meta', 'readwrite'); t.objectStore('meta').put({ k: k, v: v }); return txDone(t); }
+function loadAll(){ return p(db.transaction('receipts').objectStore('receipts').getAll()); }
+function getImage(num){ return p(db.transaction('images').objectStore('images').get(num)); }
+
+// Allocates the next number atomically and saves receipt + image in ONE transaction.
+function addReceipt(rec, img){
+  return new Promise(function(res, rej){
+    var t = db.transaction(['meta', 'receipts', 'images'], 'readwrite');
+    var meta = t.objectStore('meta'), rs = t.objectStore('receipts'), is = t.objectStore('images');
+    var num;
+    meta.get('nextNumber').onsuccess = function(e){
+      var next = (e.target.result && e.target.result.v) || 1;
+      rs.openCursor(null, 'prev').onsuccess = function(ev){
+        var c = ev.target.result, maxNum = c ? c.key : 0;
+        num = Math.max(next, maxNum + 1);
+        rec.num = num; img.num = num;
+        rs.add(rec); is.add(img);
+        meta.put({ k: 'nextNumber', v: num + 1 });
+      };
+    };
+    t.oncomplete = function(){ res(num); };
+    t.onerror = t.onabort = function(){ rej(t.error || new Error('Save failed')); };
+  });
+}
+function updateReceipt(rec){ var t = db.transaction('receipts', 'readwrite'); t.objectStore('receipts').put(rec); return txDone(t); }
+function deleteReceipt(num){ var t = db.transaction(['receipts', 'images'], 'readwrite'); t.objectStore('receipts').delete(num); t.objectStore('images').delete(num); return txDone(t); }
+
+/* ---------- image processing ---------- */
+function loadImg(file){
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function(){ res({ img: im, url: url }); };
+    im.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('Could not read this image format')); };
+    im.src = url;
+  });
+}
+function drawTo(img, maxSide, q){
+  var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  var s = Math.min(1, maxSide / Math.max(w, h));
+  var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+  var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch);
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(img, 0, 0, cw, ch);
+  return new Promise(function(res, rej){
+    c.toBlob(function(b){ c.width = c.height = 0; b ? res({ blob: b, w: cw, h: ch }) : rej(new Error('Compression failed')); }, 'image/jpeg', q);
+  });
+}
+function processImage(file){
+  return loadImg(file).then(function(o){
+    return drawTo(o.img, MAX_SIDE, JPEG_Q).then(function(full){
+      return drawTo(o.img, THUMB_SIDE, THUMB_Q).then(function(th){
+        URL.revokeObjectURL(o.url);
+        return Promise.all([blobToBuf(full.blob), blobToBuf(th.blob)]).then(function(b){
+          return { data: b[0], type: 'image/jpeg', thumb: b[1], w: full.w, h: full.h, origSize: file.size };
+        });
+      });
+    });
+  });
+}
+
+/* ---------- ZIP (store-only, pure JS) ---------- */
+var CRC_T = (function(){ var t = new Uint32Array(256); for (var n = 0; n < 256; n++){ var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8){ var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function utf8(s){ return new TextEncoder().encode(s); }
+function makeZip(files){
+  var parts = [], central = [], offset = 0, now = new Date();
+  files.forEach(function(f){
+    var name = utf8(f.name), data = f.data instanceof Uint8Array ? f.data : new Uint8Array(f.data);
+    var d = f.date || now, crc = crc32(data), size = data.length;
+    var time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    var date = ((Math.max(1980, d.getFullYear()) - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    var lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(lh.buffer, name, data);
+    var ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(10, 0, true); ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, name.length, true);
+    ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+    ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+    central.push(ch.buffer, name);
+    offset += 30 + name.length + size;
+  });
+  var cdSize = 0; central.forEach(function(c){ cdSize += c.byteLength; });
+  var end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true); end.setUint16(20, 0, true);
+  return new Blob(parts.concat(central, [end.buffer]), { type: 'application/zip' });
+}
+function csvCell(v){ v = v == null ? '' : String(v); return /[",\r\n]/.test(v) || /^\s|\s$/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function buildCSV(list){
+  var rows = [['number', 'date', 'amount', 'currency', 'note', 'filename']];
+  list.forEach(function(r){ rows.push([pad(r.num), r.date || '', r.amount || '', r.currency === 'OTHER' ? '' : (r.currency || ''), r.note || '', fileName(r)]); });
+  return '\uFEFF' + rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n') + '\r\n';
+}
+function sorted(){ return receipts.slice().sort(function(a, b){ return a.num - b.num; }); }
+function exportFiles(){
+  var list = sorted();
+  return Promise.all(list.map(function(r){ return getImage(r.num); })).then(function(imgs){
+    var files = list.map(function(r, i){ return { name: fileName(r), data: imgs[i] ? imgs[i].data : new ArrayBuffer(0), type: r.imgType || 'image/jpeg', date: new Date(r.created || Date.now()) }; });
+    files.push({ name: 'receipts.csv', data: utf8(buildCSV(list)), type: 'text/csv' });
+    return files;
+  });
+}
+function zipName(){ return 'receipts_' + todayISO() + '.zip'; }
+function markBackedUp(){ return setMeta('lastBackup', Date.now()).then(renderBackup); }
+function downloadBlob(blob, name){
+  var a = document.createElement('a'), url = URL.createObjectURL(blob);
+  a.href = url; a.download = name; a.rel = 'noopener'; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 60000);
+}
+
+/* ---------- rendering ---------- */
+function matches(r, q){
+  if (!q) return true;
+  var hay = [pad(r.num), '#' + r.num, '#' + pad(r.num), r.note, r.date, fmtDate(r.date), r.amount, r.currency].join(' ').toLowerCase();
+  return q.toLowerCase().split(/\s+/).every(function(w){ return hay.indexOf(w) !== -1; });
+}
+function render(){
+  thumbUrls.forEach(URL.revokeObjectURL); thumbUrls = [];
+  var q = $('q').value.trim(), g = $('grid'); g.textContent = '';
+  var list = receipts.slice().sort(function(a, b){ return b.num - a.num; }).filter(function(r){ return matches(r, q); });
+  list.forEach(function(r){
+    var card = document.createElement('button'); card.type = 'button'; card.className = 'card'; card.setAttribute('data-num', r.num);
+    var th = document.createElement('div'); th.className = 'thumb';
+    if (r.thumb){ var u = URL.createObjectURL(new Blob([r.thumb], { type: 'image/jpeg' })); thumbUrls.push(u); var im = document.createElement('img'); im.src = u; im.alt = ''; im.loading = 'lazy'; th.appendChild(im); }
+    var n = document.createElement('span'); n.className = 'num'; n.textContent = pad(r.num); th.appendChild(n);
+    var m = document.createElement('div'); m.className = 'meta';
+    var nt = document.createElement('div'); nt.className = 'note'; nt.textContent = r.note || '(no note)'; if (!r.note) nt.style.color = 'var(--mut)';
+    var sub = document.createElement('div'); sub.className = 'sub';
+    var dt = document.createElement('span'); dt.textContent = fmtDate(r.date);
+    var am = document.createElement('span'); am.className = 'amt'; am.textContent = r.amount ? r.amount + ' ' + (r.currency === 'OTHER' ? '' : r.currency || '') : '';
+    sub.appendChild(dt); sub.appendChild(am); m.appendChild(nt); m.appendChild(sub);
+    card.appendChild(th); card.appendChild(m);
+    card.addEventListener('click', function(){ openExisting(r.num); });
+    g.appendChild(card);
+  });
+  $('empty').classList.toggle('hidden', receipts.length > 0);
+  $('listInfo').textContent = q ? list.length + ' of ' + receipts.length + ' shown' : receipts.length + (receipts.length === 1 ? ' receipt' : ' receipts');
+  $('countLbl').textContent = receipts.length ? receipts.length + ' saved · works offline' : 'Sanko travel expenses';
+  if (q && !list.length && receipts.length){ var e = document.createElement('div'); e.className = 'empty'; e.style.gridColumn = '1/-1'; e.textContent = 'No receipts match “' + q + '”.'; g.appendChild(e); }
+  renderBackup();
+}
+function renderBackup(){
+  return getMeta('lastBackup', 0).then(function(lb){
+    var unbacked = receipts.filter(function(r){ return (r.updated || r.created || 0) > lb; }).length;
+    $('lastBackup').textContent = lb ? 'Last backup: ' + new Date(lb).toLocaleString() : 'Not backed up yet.';
+    var ban = $('backupBanner'), days = lb ? (Date.now() - lb) / 864e5 : 0;
+    if (unbacked > 0){
+      ban.classList.remove('hidden');
+      $('backupTitle').textContent = unbacked + (unbacked === 1 ? ' receipt not backed up' : ' receipts not backed up');
+      $('backupTxt').textContent = lb ? ' Last backup ' + (days < 1 ? 'today' : Math.floor(days) + ' day(s) ago') + '. Photos live only on this phone — export a ZIP regularly.' : ' Photos live only on this phone — export a ZIP regularly (e.g. daily).';
+    } else ban.classList.add('hidden');
+  });
+}
+function renderSettings(){
+  getMeta('nextNumber', 1).then(function(n){ var maxN = receipts.reduce(function(m, r){ return Math.max(m, r.num); }, 0); n = Math.max(n, maxN + 1); $('nextNum').value = n; $('nextNum').min = n; });
+  if (navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(function(e){ $('storageInfo').textContent = 'Storage used: ' + (e.usage / 1048576).toFixed(1) + ' MB' + (e.quota ? ' of ~' + Math.round(e.quota / 1048576) + ' MB available' : '') + '.'; }).catch(function(){});
+  }
+}
+function fillCurrencies(sel){ sel.textContent = ''; CURRENCIES.forEach(function(c){ var o = document.createElement('option'); o.value = c; o.textContent = c === 'OTHER' ? 'Other' : c; sel.appendChild(o); }); }
+
+/* ---------- sheet (new / edit) ---------- */
+function openSheet(){ $('sheet').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeSheet(){
+  $('sheet').classList.remove('open'); document.body.style.overflow = '';
+  if (sheetUrl){ URL.revokeObjectURL(sheetUrl); sheetUrl = null; }
+  $('sheetImg').removeAttribute('src'); editing = null; pending = null;
+}
+function setSheetImage(buf, type){ if (sheetUrl) URL.revokeObjectURL(sheetUrl); sheetUrl = URL.createObjectURL(new Blob([buf], { type: type || 'image/jpeg' })); $('sheetImg').src = sheetUrl; }
+function handleFile(file){
+  if (!file) return;
+  busy(true, 'Compressing photo…');
+  processImage(file).then(function(img){
+    pending = img; editing = null;
+    return getMeta('nextNumber', 1).then(function(n){
+      var maxN = receipts.reduce(function(m, r){ return Math.max(m, r.num); }, 0);
+      n = Math.max(n, maxN + 1);
+      $('sheetTitle').innerHTML = 'New receipt <span class="badge">' + pad(n) + '</span>';
+      setSheetImage(img.data, img.type);
+      $('fNote').value = ''; $('fAmt').value = ''; $('fDate').value = todayISO();
+      return getMeta('defCurrency', 'GBP').then(function(c){ $('fCur').value = c; });
+    }).then(function(){
+      $('saveBtn').textContent = 'Save receipt';
+      $('delBtn').classList.add('hidden'); $('shareOne').classList.add('hidden');
+      busy(false); openSheet();
+      setTimeout(function(){ try { $('fNote').focus(); } catch (e) {} }, 250);
+    });
+  }).catch(function(err){ busy(false); alert('Sorry, that photo could not be processed: ' + err.message); });
+}
+function openExisting(num){
+  var r = receipts.find(function(x){ return x.num === num; }); if (!r) return;
+  editing = r; pending = null;
+  $('sheetTitle').innerHTML = 'Receipt <span class="badge">' + pad(r.num) + '</span>';
+  $('fNote').value = r.note || ''; $('fAmt').value = r.amount || ''; $('fCur').value = r.currency || 'GBP'; $('fDate').value = r.date || '';
+  $('saveBtn').textContent = 'Save changes';
+  $('delBtn').classList.remove('hidden');
+  $('shareOne').classList.toggle('hidden', !navigator.share);
+  if (r.thumb) setSheetImage(r.thumb, 'image/jpeg');
+  openSheet();
+  getImage(num).then(function(im){ if (im && editing === r) setSheetImage(im.data, im.type); });
+}
+function saveForm(ev){
+  ev.preventDefault();
+  var note = $('fNote').value.trim(), amount = normAmount($('fAmt').value), cur = $('fCur').value, date = $('fDate').value || todayISO();
+  if ($('fAmt').value.trim() && !/^-?\d*\.?\d+$/.test(amount)){ alert('Amount should be a number, e.g. 12.50'); return; }
+  var now = Date.now();
+  if (editing){
+    var r = Object.assign({}, editing, { note: note, amount: amount, currency: cur, date: date, updated: now });
+    updateReceipt(r).then(function(){
+      var i = receipts.findIndex(function(x){ return x.num === r.num; }); receipts[i] = r;
+      closeSheet(); render(); toast('Receipt ' + pad(r.num) + ' updated');
+    }).catch(function(e){ alert('Could not save: ' + e.message); });
+  } else if (pending){
+    var rec = { note: note, amount: amount, currency: cur, date: date, created: now, updated: now, thumb: pending.thumb, imgType: pending.type, w: pending.w, h: pending.h, size: pending.data.byteLength };
+    $('saveBtn').disabled = true;
+    addReceipt(rec, { data: pending.data, type: pending.type }).then(function(num){
+      receipts.push(rec); closeSheet(); render(); renderSettings();
+      toast('Saved as receipt ' + pad(num));
+      setMeta('defCurrency', cur);
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){});
+    }).catch(function(e){ alert('Could not save (storage full?): ' + e.message); })
+      .then(function(){ $('saveBtn').disabled = false; });
+  }
+}
+function deleteCurrent(){
+  if (!editing) return;
+  var r = editing;
+  if (!confirm('Delete receipt ' + pad(r.num) + (r.note ? ' (“' + r.note + '”)' : '') + '?\n\nThis cannot be undone. The number ' + pad(r.num) + ' will not be reused.')) return;
+  deleteReceipt(r.num).then(function(){
+    receipts = receipts.filter(function(x){ return x.num !== r.num; });
+    closeSheet(); render(); renderSettings(); toast('Receipt ' + pad(r.num) + ' deleted');
+  }).catch(function(e){ alert('Could not delete: ' + e.message); });
+}
+function shareCurrent(){
+  if (!editing) return; var r = editing;
+  getImage(r.num).then(function(im){
+    var f = new File([im.data], fileName(r), { type: im.type || 'image/jpeg' });
+    var text = 'Receipt ' + pad(r.num) + ' · ' + fmtDate(r.date) + (r.amount ? ' · ' + r.amount + ' ' + r.currency : '') + (r.note ? ' · ' + r.note : '');
+    var data = { files: [f], title: fileName(r), text: text };
+    if (navigator.canShare && !navigator.canShare(data)) data = { title: fileName(r), text: text };
+    return navigator.share(data);
+  }).catch(function(e){ if (e && e.name !== 'AbortError') alert('Sharing failed: ' + e.message); });
+}
+
+/* ---------- export actions ---------- */
+function doZip(){
+  if (!receipts.length){ toast('Nothing to export yet'); return; }
+  busy(true, 'Building ZIP…');
+  exportFiles().then(function(files){
+    var blob = makeZip(files); busy(false);
+    downloadBlob(blob, zipName());
+    toast('ZIP ready: ' + receipts.length + ' receipts (' + (blob.size / 1048576).toFixed(1) + ' MB)', 4000);
+    markBackedUp();
+  }).catch(function(e){ busy(false); alert('Export failed: ' + e.message); });
+}
+function tryShare(files){
+  return navigator.share({ files: files, title: 'Receipts ' + todayISO(), text: receipts.length + ' expense receipts (' + todayISO() + ')' }).then(function(){
+    shareFiles = null; $('shareReady').classList.add('hidden'); markBackedUp(); toast('Shared');
+  }, function(e){
+    if (e && e.name === 'AbortError') return;
+    if (e && e.name === 'NotAllowedError'){ shareFiles = files; $('shareReady').classList.remove('hidden'); return; }
+    alert('Sharing failed: ' + (e && e.message) + '\nUse “Download ZIP + CSV” instead.');
+  });
+}
+function doShare(){
+  if (!receipts.length){ toast('Nothing to share yet'); return; }
+  if (!navigator.share || !navigator.canShare){ alert('Sharing is not supported in this browser. Use “Download ZIP + CSV” instead.'); return; }
+  busy(true, 'Preparing files…');
+  exportFiles().then(function(files){
+    busy(false);
+    var zip = new File([makeZip(files)], zipName(), { type: 'application/zip' });
+    if (navigator.canShare({ files: [zip] })) return tryShare([zip]);
+    // e.g. Android Chrome does not allow sharing .zip: share photos + CSV individually
+    var loose = files.map(function(f){ return new File([f.data], f.name, { type: f.type }); });
+    if (navigator.canShare({ files: loose })) return tryShare(loose);
+    var csvOnly = [loose[loose.length - 1]];
+    if (navigator.canShare({ files: csvOnly })){ toast('Sharing CSV only — download the ZIP for photos', 4000); return tryShare(csvOnly); }
+    alert('This browser cannot share these files. Use “Download ZIP + CSV” instead.');
+  }).catch(function(e){ busy(false); alert('Share failed: ' + e.message); });
+}
+
+/* ---------- environment: SW, install, online ---------- */
+function setupEnv(){
+  $('verLbl').textContent = 'v' + APP_VERSION;
+  var secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  var env = $('envNote');
+  if ('serviceWorker' in navigator && secure){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.addEventListener('updatefound', function(){
+        var w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', function(){ if (w.state === 'installed' && navigator.serviceWorker.controller) toast('App updated — reopen to use the new version', 4000); });
+      });
+    }).catch(function(e){ console.warn('SW registration failed', e); });
+  } else {
+    env.classList.remove('hidden');
+    env.innerHTML = location.protocol === 'file:'
+      ? '<div class="bx"><b>Opened as a local file</b>Receipts are still saved in this browser, but offline mode and “Add to Home Screen” need the HTTPS web address of this app.</div>'
+      : '<div class="bx"><b>Limited mode</b>Offline caching is unavailable here (needs HTTPS). Receipts are still saved in this browser.</div>';
+  }
+  var inst = $('installBanner'), deferred = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferred = e;
+    $('installTxt').textContent = ' Add Receipts to your home screen for one-tap, offline use.';
+    $('installBtn').classList.remove('hidden'); inst.classList.remove('hidden');
+  });
+  $('installBtn').addEventListener('click', function(){ if (!deferred) return; deferred.prompt(); deferred.userChoice.then(function(){ deferred = null; inst.classList.add('hidden'); }); });
+  window.addEventListener('appinstalled', function(){ inst.classList.add('hidden'); toast('Installed'); });
+  if (isIOS()){
+    $('iosHint').classList.remove('hidden');
+    if (!isStandalone() && secure){
+      $('installTxt').textContent = ' In Safari tap Share (□↑) then “Add to Home Screen”. Then always open Receipts from the home-screen icon (it keeps its own storage).';
+      inst.classList.remove('hidden');
+    }
+  }
+  function net(){ var on = navigator.onLine; var pl = $('netPill'); pl.textContent = on ? 'Online' : 'Offline'; pl.classList.toggle('off', !on); }
+  window.addEventListener('online', net); window.addEventListener('offline', net); net();
+}
+
+/* ---------- wire up ---------- */
+function init(){
+  fillCurrencies($('fCur')); fillCurrencies($('defCur'));
+  setupEnv();
+  $('takeBtn').addEventListener('click', function(){ $('camInput').value = ''; $('camInput').click(); });
+  $('galleryBtn').addEventListener('click', function(){ $('galInput').value = ''; $('galInput').click(); });
+  $('camInput').addEventListener('change', function(e){ handleFile(e.target.files && e.target.files[0]); });
+  $('galInput').addEventListener('change', function(e){ handleFile(e.target.files && e.target.files[0]); });
+  $('form').addEventListener('submit', saveForm);
+  $('sheetClose').addEventListener('click', function(){ if (pending && !confirm('Discard this photo?')) return; closeSheet(); });
+  $('delBtn').addEventListener('click', deleteCurrent);
+  $('shareOne').addEventListener('click', shareCurrent);
+  $('sheetImg').addEventListener('click', function(){
+    var src = $('sheetImg').src; if (!src) return;
+    $('viewerImg').src = src; $('viewer').classList.add('open');
+  });
+  $('viewerClose').addEventListener('click', function(){ $('viewer').classList.remove('open'); $('viewerImg').removeAttribute('src'); });
+  $('q').addEventListener('input', render);
+  $('zipBtn').addEventListener('click', doZip);
+  $('backupNow').addEventListener('click', function(){ (navigator.canShare && isIOS()) ? doShare() : doZip(); });
+  $('shareBtn').addEventListener('click', doShare);
+  $('shareReady').addEventListener('click', function(){ if (shareFiles) tryShare(shareFiles); });
+  $('defCur').addEventListener('change', function(){ setMeta('defCurrency', $('defCur').value); toast('Default currency: ' + $('defCur').value); });
+  $('setNext').addEventListener('click', function(){
+    var v = parseInt($('nextNum').value, 10), min = parseInt($('nextNum').min, 10) || 1;
+    if (!(v >= min)){ alert('The next number can only be ' + pad(min) + ' or higher (numbers are never reused).'); $('nextNum').value = min; return; }
+    setMeta('nextNumber', v).then(function(){ renderSettings(); toast('Next receipt will be ' + pad(v)); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ if ($('viewer').classList.contains('open')) $('viewerClose').click(); else if ($('sheet').classList.contains('open')) closeSheet(); } });
+
+  openDB().then(function(d){
+    db = d;
+    return Promise.all([loadAll(), getMeta('defCurrency', 'GBP')]);
+  }).then(function(res){
+    receipts = res[0] || []; $('defCur').value = res[1];
+    render(); renderSettings();
+  }).catch(function(e){
+    var env = $('envNote'); env.classList.remove('hidden'); env.className = 'banner warn';
+    env.textContent = 'Storage is unavailable in this browser mode (' + e.message + '). Private browsing may block saving — open the app normally.';
+    ['takeBtn', 'galleryBtn', 'zipBtn', 'shareBtn'].forEach(function(id){ $(id).disabled = true; });
+  });
+}
+// Expose a few internals for automated tests only.
+window.__receiptsTest = { makeZip: makeZip, crc32: crc32, slug: slug, buildCSV: buildCSV, exportFiles: exportFiles, normAmount: normAmount };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+</body>
+</html>
